@@ -3,64 +3,82 @@ const Task = require('../models/task');
 const auth = require('../middleware/auth');
 const router = new express.Router();
 
-router.post('/task', auth, async (req,res) => {
+router.post('/task', auth, async (req, res) => {
   const task = new Task({
     ...req.body,
-    owner: req.user._id
+    owner: req.user._id,
   });
 
   try {
     await task.save();
     res.status(201).send(task);
-  } catch (e) {
-    res.status(400).send(e);
+  } catch (error) {
+    res.status(400).send(error);
   }
 });
 
-router.get('/task', async (req, res) => {
+router.get('/task', auth, async (req, res) => {
   try {
-    const tasks = await Task.find({});
-    res.status(201).send(tasks);
-  } catch (e) {
-    res.status(500).send();
+    await req.user.populate('tasks').execPopulate();
+
+    res.send(req.user.tasks);
+  } catch (error) {
+    res.status(500).send(error);
   }
 });
 
-router.get('/task/:id', async (req, res) => {
+router.get('/task/:id', auth, async (req, res) => {
+  const _id = req.params.id;
+
   try {
-    const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).send();
+    const task = await Task.findOne({ _id, owner: req.user._id });
+
+    if (!task) {
+      return res.status(404).send();
+    }
+
     res.send(task);
-  } catch (e) {
-    res.status(500).send();
+  } catch (error) {
+    res.status(500).send(error);
   }
 });
 
-router.patch('/task/:id', async (req, res) => {
+router.patch('/task/:id', auth, async (req, res) => {
   const updates = Object.keys(req.body);
   const allowedUpdates = ['description', 'completed'];
   const isValid = updates.every((update) => allowedUpdates.includes(update));
 
-  if (!isValid) return res.status(400).send({error: 'Invalid updates'});
+  if (!isValid) return res.status(400).send({ error: 'Invalid updates' });
 
   try {
-    const task = await Task.findById(req.params.id);
-    updates.forEach((update) => task[update] = req.body[update]);
+    const task = await Task.findOne({
+      _id: req.params.id,
+      owner: req.user._id,
+    });
+
+    if (!task) {
+      return res.status(404).send();
+    }
+
+    updates.forEach((update) => (task[update] = req.body[update]));
     await task.save();
-   
-    if (!task) return res.status(404).send();
+
     res.send(task);
-  } catch (e) {
-    res.status(400).send(e);
+  } catch (error) {
+    res.status(400).send(error);
   }
 });
 
 router.delete('/task/:id', async (req, res) => {
   try {
     const task = await Task.findByIdAndDelete(req.params.id);
-    if (!task) return res.status(404).send();
+
+    if (!task) {
+      return res.status(404).send();
+    }
+
     res.send(task);
-  } catch (e) {
+  } catch (error) {
     res.status(500).send();
   }
 });

@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/user');
 const auth = require('../middleware/auth');
+
 const router = new express.Router();
 
 router.post('/user/login', async (req, res) => {
@@ -19,13 +20,13 @@ router.post('/user/login', async (req, res) => {
 
 router.post('/user/logout', auth, async (req, res) => {
   try {
-    req.user.tokens = req.user.tokens.filter((token) => {
-      return token.token !== req.token;
-    });
+    req.user.tokens = req.user.tokens.filter(
+      (token) => token.token !== req.token
+    );
 
     await req.user.save();
     res.send();
-  } catch (e) {
+  } catch (error) {
     res.status(500).send();
   }
 });
@@ -35,7 +36,7 @@ router.post('/user/logout-all', auth, async (req, res) => {
     req.user.tokens = [];
     await req.user.save();
     res.send();
-  } catch (e) {
+  } catch (error) {
     res.status(500).send();
   }
 });
@@ -46,9 +47,10 @@ router.post('/user', async (req, res) => {
   try {
     await user.save();
     const token = await user.generateAuthToken();
+
     res.status(201).send({ user, token });
-  } catch (e) {
-    res.status(400).send(e);
+  } catch (error) {
+    res.status(400).send(error);
   }
 });
 
@@ -61,23 +63,26 @@ router.patch('/user/me', auth, async (req, res) => {
   const allowedUpdates = ['name', 'email', 'password', 'age'];
   const isValid = updates.every((update) => allowedUpdates.includes(update));
 
-  if (!isValid) return res.status(400).send({ error: 'Invalid updates' });
+  if (!isValid) {
+    return res.status(400).send({ error: 'Invalid updates' });
+  }
 
   try {
     updates.forEach((update) => (req.user[update] = req.body[update]));
     await req.user.save();
 
     res.send(req.user);
-  } catch (e) {
-    res.status(400).send(e);
+  } catch (error) {
+    res.status(400).send(error);
   }
 });
 
 router.delete('/user/me', auth, async (req, res) => {
   try {
     await req.user.remove();
+
     res.send(req.user);
-  } catch (e) {
+  } catch (error) {
     res.status(500).send();
   }
 });
