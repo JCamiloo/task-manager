@@ -5,6 +5,21 @@ const auth = require('../middleware/auth');
 
 const router = new express.Router();
 
+const upload = multer({
+  dest: 'avatars',
+  limits: {
+    fileSize: 2500000
+  },
+  fileFilter(req, file, callback) {
+    if (!file.originalname.match(/\.(jpg | png)$/)) {
+      return callback(new Error('File must be an image'));
+
+    }
+
+    callback(undefined, true);
+  }
+});
+
 router.post('/user/login', async (req, res) => {
   try {
     const user = await User.findByCredentials(
@@ -88,12 +103,10 @@ router.delete('/user/me', auth, async (req, res) => {
   }
 });
 
-const upload = multer({
-  dest: 'avatars'
-});
-
 router.post('/user/me/avatar', upload.single('avatar'), async (req, res) => {
   res.send();
+}, (error, req, res, next) => {
+  res.status(400).send({ error: error.message });
 });
 
 module.exports = router;
