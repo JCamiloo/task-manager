@@ -17,13 +17,21 @@ router.post('/task', auth, async (req, res) => {
   }
 });
 
+// /task?completed=true
+// /task?limit=10&skip=20
+// /task?createdAt:desc | asc
 router.get('/task', auth, async (req, res) => {
   const match = {};
+  const sort = {};
   const completed = req.query.completed;
 
   if (completed) {
     match.completed = completed === 'true';
-  } 
+  }
+
+  if (req.query.createdAt) {
+    sort.createdAt = req.query.createdAt === 'desc' ? -1 : 1;
+  }
 
   try {
     await req.user.populate({
@@ -32,6 +40,7 @@ router.get('/task', auth, async (req, res) => {
       options: {
         limit: parseInt(req.query.limit) || 10,
         skip: parseInt(req.query.skip) || 0,
+        sort
       }
     }).execPopulate();
 
