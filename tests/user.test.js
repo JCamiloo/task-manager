@@ -88,3 +88,37 @@ test('Should not delete account for a user', async () => {
     .send()
     .expect(401);
 });
+
+test('Should upload avatar image', async () => {
+  await request(app)
+    .post('/user/me/avatar')
+    .set('Authorization', `Bearer ${userOne.tokens[0].token}`)
+    .attach('avatar', 'tests/fixtures/profile-pic.jpg')
+    .expect(200);
+
+  const user = await User.findById(userOneId);
+  expect(user.avatar).toEqual(expect.any(Buffer));
+});
+
+test('Should update valid user fields', async () => {
+  await request(app)
+    .patch('/user/me')
+    .set('Authorization', `Bearer ${userOne.tokens[0].token}`)
+    .send({
+      name: 'test',
+    })
+    .expect(200);
+
+  const user = await User.findById(userOneId);
+  expect(user.name).toEqual('test');
+});
+
+test('Should update valid user fields', async () => {
+  await request(app)
+    .patch('/user/me')
+    .set('Authorization', `Bearer ${userOne.tokens[0].token}`)
+    .send({
+      location: 'Colombia',
+    })
+    .expect(400);
+});
