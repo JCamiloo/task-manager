@@ -22,22 +22,29 @@ beforeEach(async () => {
 });
 
 test('Should signup a new user', async () => {
-  await request(app)
+  const response = await request(app)
     .post('/user')
     .send({
       name: 'Juan',
       email: 'test@test.com',
       password: 'test1234'
     }).expect(201);
+  
+  const user = await User.findById(response.body.user.id);
+  expect(user).not.toBeNull();
+  expect(user.password).not.toBe('test1234');
 });
 
 test('Should login existing user', async () => {
-  await request(app)
+  const response = await request(app)
     .post('/user/login')
     .send({
       email: userOne.email,
       password: userOne.password
     }).expect(200);
+
+  const user = await User.findById(userOneId);
+  expect(response.body.token).toBe(user.tokens[1].token);
 });
 
 test('Should not login nonexisting user', async () => {
@@ -70,6 +77,9 @@ test('Should delete account for a user', async () => {
     .set('Authorization', `Bearer ${userOne.tokens[0].token}`)
     .send()
     .expect(200);
+
+  const user = await User.findById(userOneId);
+  expect(user).toBeNull();
 });
 
 test('Should not delete account for a user', async () => {
